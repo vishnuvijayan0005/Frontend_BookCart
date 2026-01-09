@@ -1,0 +1,151 @@
+// store/booksSlice.ts
+import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "@/utils/baseUrl"; // make sure axios base URL is configured
+
+export interface Book {
+  _id?: string; // id from backend
+  title: string;
+  author: string;
+  category: string;
+  description: string;
+  price: number;
+  pages: number;
+  quantity: number;
+  inStock: boolean;
+  isWish: boolean;
+  publishedDate: string;
+  image: File | null;
+}
+
+interface BookState {
+  books: Book[];
+  loading: boolean;
+  error: string | null;
+}
+
+const initialState: BookState = {
+  books: [],
+  loading: false,
+  error: null,
+};
+
+/* -------------------- ASYNC API ACTIONS -------------------- */
+
+// Fetch all books
+export const fetchBooks = createAsyncThunk("books/fetchBooks", async () => {
+  const res = await axios.get("/books");
+  return res.data;
+});
+
+// Add new book
+export const addBook = createAsyncThunk(
+  "books/addBook",
+  async (book: Book) => {
+    const formData = new FormData();
+    Object.entries(book).forEach(([key, value]) => {
+      if (value !== null) formData.append(key, value as any);
+    });
+
+    const res = await axios.post("/books", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    return res.data;
+  }
+);
+
+// Update book
+export const updateBook = createAsyncThunk(
+  "books/updateBook",
+  async (book: Book) => {
+    if (!book._id) throw new Error("Book ID missing");
+    const formData = new FormData();
+    Object.entries(book).forEach(([key, value]) => {
+      if (value !== null) formData.append(key, value as any);
+    });
+
+    const res = await axios.put(`/books/${book._id}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    return res.data;
+  }
+);
+
+// Delete book
+export const deleteBook = createAsyncThunk(
+  "books/deleteBook",
+  async (id: string) => {
+    await axios.delete(`/books/${id}`);
+    return id;
+  }
+);
+
+/* -------------------- SLICE -------------------- */
+
+const bookSlice = createSlice({
+  name: "books",
+  initialState,
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      // Fetch Books
+      .addCase(fetchBooks.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchBooks.fulfilled, (state, action) => {
+        state.loading = false;
+        state.books = action.payload;
+      })
+      .addCase(fetchBooks.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || "Failed to fetch books";
+      })
+
+      // Add Book
+      .addCase(addBook.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(addBook.fulfilled, (state, action) => {
+        state.loading = false;
+        state.books.push(action.payload);
+      })
+      .addCase(addBook.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || "Failed to add book";
+      })
+
+      // Update Book
+      .addCase(updateBook.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateBook.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.books.findIndex((b) => b._id === action.payload._id);
+        if (index !== -1) state.books[index] = action.payload;
+      })
+      .addCase(updateBook.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || "Failed to update book";
+      })
+
+      // Delete Book
+      .addCase(deleteBook.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteBook.fulfilled, (state, action) => {
+        state.loading = false;
+        state.books = state.books.filter((b) => b._id !== action.payload);
+      })
+      .addCase(deleteBook.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || "Failed to delete book";
+      });
+  },
+});
+
+export default bookSlice.reducer;
