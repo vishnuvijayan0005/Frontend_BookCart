@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
 import { Mail, Lock, User, Eye, EyeOff, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { Formik, Form, Field, ErrorMessage } from "formik";
@@ -17,7 +16,6 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [userrole, setUserrole] = useState("user");
 
-  // Yup validation schema
   const RegisterSchema = Yup.object({
     name: Yup.string()
       .required("Full name is required")
@@ -27,8 +25,7 @@ export default function RegisterPage() {
       )
       .test("min-letters", "Name must contain at least 3 letters", (value) => {
         if (!value) return false;
-        const lettersCount = value.replace(/[^A-Za-z]/g, "").length;
-        return lettersCount >= 3;
+        return value.replace(/[^A-Za-z]/g, "").length >= 3;
       }),
 
     email: Yup.string()
@@ -52,7 +49,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] px-4 font-sans">
-      <div className="bg-white rounded-[28px] shadow-[0_20px_40px_rgba(0,0,0,0.04)] border border-gray-100 p-6 md:p-8 relative">
+      <div className="bg-white rounded-[28px] shadow-[0_20px_40px_rgba(0,0,0,0.04)] border border-gray-100 p-6 md:p-8 relative w-full max-w-md">
 
         {/* Logo */}
         <div className="flex justify-center mb-5">
@@ -70,7 +67,6 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* Formik */}
         <Formik
           initialValues={{
             name: "",
@@ -80,27 +76,33 @@ export default function RegisterPage() {
           }}
           validationSchema={RegisterSchema}
           onSubmit={async (values, { setSubmitting, resetForm }) => {
-            try {
-              // 🔥 Send EXACT keys backend expects
-              const payload = {
-                username: values.name,
-                usermail: values.email,
-                userrole,
-                password: values.password,
-              };
+            const payload = {
+              username: values.name,
+              usermail: values.email,
+              userrole,
+              password: values.password,
+            };
 
-              const result = await api.post("/registration", payload);
-              toast.success(result.data.message, { position: "top-right" });
+            try {
+              await toast.promise(
+                api.post("/registration", payload),
+                {
+                  loading: "Creating account...",
+                  success: (res) =>
+                    res.data.message || "Account created successfully!",
+                  error: (err) =>
+                    err?.response?.data?.message ||
+                    "Registration failed",
+                }
+              );
 
               resetForm();
-              router.push("/");
-            } catch (error: any) {
-              toast.error(
-                error?.response?.data?.message || "Something went wrong",
-                { position: "top-right" }
-              );
+              router.push("/auth/login");
+            } catch {
+              // toast handles errors
+            } finally {
+              setSubmitting(false);
             }
-            setSubmitting(false);
           }}
         >
           {({ isSubmitting }) => (
@@ -120,11 +122,7 @@ export default function RegisterPage() {
                     className="w-full h-11 pl-12 pr-4 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 outline-none transition"
                   />
                 </div>
-                <ErrorMessage
-                  name="name"
-                  component="p"
-                  className="text-red-500 text-sm mt-1"
-                />
+                <ErrorMessage name="name" component="p" className="text-red-500 text-sm mt-1" />
               </div>
 
               {/* Email */}
@@ -141,14 +139,10 @@ export default function RegisterPage() {
                     className="w-full h-11 pl-12 pr-4 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 outline-none transition"
                   />
                 </div>
-                <ErrorMessage
-                  name="email"
-                  component="p"
-                  className="text-red-500 text-sm mt-1"
-                />
+                <ErrorMessage name="email" component="p" className="text-red-500 text-sm mt-1" />
               </div>
 
-              {/* Role Switch */}
+              {/* Role */}
               <div>
                 <label className="text-xs font-bold uppercase text-gray-500 ml-1">
                   I want to...
@@ -192,11 +186,7 @@ export default function RegisterPage() {
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
-                <ErrorMessage
-                  name="password"
-                  component="p"
-                  className="text-red-500 text-sm mt-1"
-                />
+                <ErrorMessage name="password" component="p" className="text-red-500 text-sm mt-1" />
               </div>
 
               {/* Confirm Password */}
@@ -213,18 +203,14 @@ export default function RegisterPage() {
                     className="w-full h-11 pl-12 pr-12 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 outline-none transition"
                   />
                 </div>
-                <ErrorMessage
-                  name="confirmPassword"
-                  component="p"
-                  className="text-red-500 text-sm mt-1"
-                />
+                <ErrorMessage name="confirmPassword" component="p" className="text-red-500 text-sm mt-1" />
               </div>
 
               {/* Submit */}
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-3 mt-3 rounded-2xl bg-sky-600 text-white font-bold text-lg hover:bg-sky-700 transition shadow-lg shadow-sky-200 flex items-center justify-center gap-2 group"
+                className="w-full py-3 mt-3 rounded-2xl bg-sky-600 text-white font-bold text-lg hover:bg-sky-700 transition shadow-lg shadow-sky-200 flex items-center justify-center gap-2 group disabled:opacity-60"
               >
                 {isSubmitting ? "Creating..." : "Create Account"}
                 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition" />

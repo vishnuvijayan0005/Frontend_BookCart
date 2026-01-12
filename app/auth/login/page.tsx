@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { Mail, Lock, Eye, EyeOff, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { Formik, Form, Field, ErrorMessage } from "formik";
@@ -11,15 +11,11 @@ import toast from "react-hot-toast";
 
 import logo from "@/assets/LOGO.svg";
 import api from "@/utils/baseUrl";
-
 import { login } from "@/store/slice/authSlice/authSlice";
-import { RootState } from "@/store/store";
 
 export default function LoginPage() {
   const router = useRouter();
-
   const dispatch = useDispatch();
-
   const [showPassword, setShowPassword] = useState(false);
 
   const LoginSchema = Yup.object({
@@ -29,7 +25,6 @@ export default function LoginPage() {
         /^[^\s@]+@[^\s@]{3,}\.[A-Za-z]{2,}(\.[A-Za-z]{2,})?$/,
         "Enter a valid email"
       ),
-
     password: Yup.string()
       .required("Password is required")
       .min(6, "Minimum 6 characters"),
@@ -37,7 +32,8 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] px-4 font-sans">
-      <div className="bg-white rounded-[28px] shadow-[0_20px_40px_rgba(0,0,0,0.04)] border border-gray-100 p-6 md:p-8 relative">
+      <div className="bg-white rounded-[28px] shadow-[0_20px_40px_rgba(0,0,0,0.04)] border border-gray-100 p-6 md:p-8 relative w-full max-w-md">
+
         {/* Logo */}
         <div className="flex justify-center mb-5">
           <div className="w-12 h-12 bg-sky-600 rounded-2xl flex items-center justify-center shadow-md shadow-sky-200">
@@ -59,18 +55,24 @@ export default function LoginPage() {
           initialValues={{ email: "", password: "" }}
           validationSchema={LoginSchema}
           onSubmit={async (values, { setSubmitting, resetForm }) => {
+            const payload = {
+              usermail: values.email,
+              password: values.password,
+            };
+
             try {
-              const payload = {
-                usermail: values.email,
-                password: values.password,
-              };
-              
-
-              const result = await api.post("/login", payload);
-
-              toast.success(result.data.message || "Login successful!", {
-                position: "top-right",
-              });
+              const result = await toast.promise(
+                api.post("/login", payload),
+                {
+                  loading: "Logging in...",
+                  success: (res) =>
+                    res.data.message || "Login successful!",
+                  error: (err) =>
+                    err?.response?.data?.message ||
+                    "Invalid credentials",
+                }
+              );
+console.log(result);
 
               dispatch(
                 login({
@@ -78,9 +80,10 @@ export default function LoginPage() {
                   token: result.data.token,
                 })
               );
-              const role = result.data.user.role;
 
               resetForm();
+
+              const role = result.data.user.role;
               if (role === "admin") {
                 router.push("/admin/dashboard");
               } else if (role === "seller") {
@@ -88,17 +91,16 @@ export default function LoginPage() {
               } else {
                 router.push("/");
               }
-            } catch (error: any) {
-              toast.error(
-                error?.response?.data?.message || "Invalid credentials",
-                { position: "top-right" }
-              );
+            } catch {
+              // toast already handled error
+            } finally {
+              setSubmitting(false);
             }
-            setSubmitting(false);
           }}
         >
           {({ isSubmitting }) => (
             <Form className="space-y-4">
+
               {/* Email */}
               <div>
                 <label className="text-xs font-bold uppercase text-gray-500 ml-1">
@@ -148,11 +150,11 @@ export default function LoginPage() {
                 />
               </div>
 
-              {/* Login Button */}
+              {/* Submit */}
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-3 mt-3 rounded-2xl bg-sky-600 text-white font-bold text-lg hover:bg-sky-700 transition shadow-lg shadow-sky-200 flex items-center justify-center gap-2 group"
+                className="w-full py-3 mt-3 rounded-2xl bg-sky-600 text-white font-bold text-lg hover:bg-sky-700 transition shadow-lg shadow-sky-200 flex items-center justify-center gap-2 group disabled:opacity-60"
               >
                 {isSubmitting ? "Signing in..." : "Login"}
                 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition" />

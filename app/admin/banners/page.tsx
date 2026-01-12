@@ -32,7 +32,7 @@ function Page() {
 
       try {
         const res = await api.get("/admin/getbanner");
-        console.log(res.data);
+        // console.log(res.data);
       } catch (err) {
         console.error(err);
       } finally {

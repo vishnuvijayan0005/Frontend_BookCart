@@ -3,6 +3,7 @@ import api from "@/utils/baseUrl";
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 import { error } from "console";
+import toast, { Toaster } from "react-hot-toast";
 import { object } from "yup";
 
 export interface Book {
@@ -39,7 +40,7 @@ export const fetchBooks = createAsyncThunk(
       const stored = localStorage.getItem("user");
       if (stored) user = JSON.parse(stored);
     }
-console.log(user);
+// console.log(user);
 
     let endpoint = "/";
     if (user === "user") endpoint = "/user/";
@@ -72,6 +73,7 @@ export const deletebook = createAsyncThunk(
   "books/deletebook",
   async (id?: string) => {
     const res = await api.delete(`/seller/deletebook/${id}`);
+
     // console.log(res.data);
   }
 );
@@ -97,60 +99,78 @@ const bookSlice = createSlice({
   initialState,
   reducers: {},
 
-  extraReducers: (builder) => {
-    builder
-      .addCase(fetchBooks.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(fetchBooks.fulfilled, (state, action) => {
-        state.loading = false;
-        state.books = action.payload;
-      })
-      .addCase(fetchBooks.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message || "Failed to fetch books";
-      })
-      .addCase(addNewBook.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(addNewBook.fulfilled, (state, action: PayloadAction<Book>) => {
-        state.loading = false;
-        state.books.push(action.payload);
-      })
-      .addCase(addNewBook.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message || "Failed to add book";
-      })
-      .addCase(deletebook.pending, (state, action) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(deletebook.fulfilled, (state, action) => {
-        state.loading = false;
-        state.books = state.books.filter((b) => b._id !== action.payload);
-      })
-      .addCase(deletebook.rejected, (state, action) => {
-        (state.loading = false),
-          (state.error = action.error.message || "failed to delete");
-      })
-      .addCase(updateBook.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(updateBook.fulfilled, (state, action) => {
-        state.loading = false;
-        const index = state.books.findIndex(
-          (b) => b._id === action.payload._id
-        );
-        if (index !== -1) state.books[index] = action.payload;
-      })
-      .addCase(updateBook.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message || "Failed to update book";
-      });
-  },
+ extraReducers: (builder) => {
+  builder
+    // ---------------- FETCH BOOKS ----------------
+    .addCase(fetchBooks.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    })
+    .addCase(fetchBooks.fulfilled, (state, action) => {
+      state.loading = false;
+      state.books = action.payload;
+    })
+    .addCase(fetchBooks.rejected, (state, action: any) => {
+      state.loading = false;
+      state.error = action.payload || "Failed to fetch books";
+      toast.error(state.error);
+    })
+
+    // ---------------- ADD BOOK ----------------
+    .addCase(addNewBook.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+      toast.loading("Adding book...", { id: "addBook" });
+    })
+    .addCase(addNewBook.fulfilled, (state, action) => {
+      state.loading = false;
+      state.books.push(action.payload);
+      toast.success("Book added successfully", { id: "addBook" });
+    })
+    .addCase(addNewBook.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.error.message || "Failed to add book";
+      toast.error(state.error, { id: "addBook" });
+    })
+
+    // ---------------- DELETE BOOK ----------------
+    .addCase(deletebook.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+      toast.loading("Deleting book...", { id: "deleteBook" });
+    })
+    .addCase(deletebook.fulfilled, (state, action) => {
+      state.loading = false;
+      state.books = state.books.filter((b) => b._id !== action.payload);
+      toast.success("Book deleted", { id: "deleteBook" });
+    })
+    .addCase(deletebook.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.error.message || "Failed to delete book";
+      toast.error(state.error, { id: "deleteBook" });
+    })
+
+    // ---------------- UPDATE BOOK ----------------
+    .addCase(updateBook.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+      toast.loading("Updating book...", { id: "updateBook" });
+    })
+    .addCase(updateBook.fulfilled, (state, action) => {
+      state.loading = false;
+      const index = state.books.findIndex(
+        (b) => b._id === action.payload._id
+      );
+      if (index !== -1) state.books[index] = action.payload;
+      toast.success("Book updated successfully", { id: "updateBook" });
+    })
+    .addCase(updateBook.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.error.message || "Failed to update book";
+      toast.error(state.error, { id: "updateBook" });
+    });
+}
+   
 });
 
 export default bookSlice.reducer;

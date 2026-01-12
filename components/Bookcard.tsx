@@ -15,26 +15,18 @@ interface BookCardProps {
 export default function BookCard({ onebook, onToggle }: BookCardProps) {
   const router = useRouter();
 
-  // Wishlist state
   const [wish, setWish] = useState(onebook?.inwish || false);
   const [loadingWish, setLoadingWish] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  // Update heart if prop changes (like after parent fetch)
-  useEffect(() => {
-    setWish(onebook?.inwish);
-  }, [onebook?._id, onebook?.inwish]);
-useEffect(() => {
-  const role = localStorage.getItem("usertoken");
-  setUserRole(role);
-}, []);
-  // Demo rating
+  useEffect(() => setWish(onebook?.inwish), [onebook?._id, onebook?.inwish]);
+  useEffect(() => setUserRole(localStorage.getItem("usertoken")), []);
+
   const rating = 4.6;
   const reviews = 320;
   const mrp = onebook.price + 200;
   const discount = Math.round(((mrp - onebook.price) / mrp) * 100);
 
-  // Image
   const imageSrc =
     typeof onebook.image === "string"
       ? onebook.image
@@ -43,31 +35,19 @@ useEffect(() => {
       : "";
 
   const addToCart = async (id: string) => {
-    try {
-      if(!userRole){
-        return toast.error("please login")
-      }
-      const request = api.post(
-        `/cart/${id}`);
-
-      toast.promise(request, {
-        loading: "Adding to cart...",
-        success: (res) => res.data.message || "Added to cart",
-        error: (err) =>
-          err.response?.data?.message || "Product already in cart",
-      });
-
-      await request; // optional if you need to wait
-    } catch (error) {
-      console.error(error);
-    }
+    if (!userRole) return toast.error("please login");
+    const request = api.post(`/cart/${id}`);
+    toast.promise(request, {
+      loading: "Adding to cart...",
+      success: (res) => res.data.message || "Added to cart",
+      error: (err) => err.response?.data?.message || "Product already in cart",
+    });
+    await request;
   };
 
-  // Wishlist toggle
   const toggleWishlist = async (bookId?: string) => {
     if (loadingWish) return;
     setLoadingWish(true);
-
     const token = localStorage.getItem("usertoken");
     if (!token) {
       toast.error("Please Log in");
@@ -75,22 +55,14 @@ useEffect(() => {
       setLoadingWish(false);
       return;
     }
-
     try {
       const res = await api.post(`/wishbook/${bookId}`);
-    
-
       if (res.data.success) {
-        setWish(res.data.inWishlist); // ✅ correct key
-
+        setWish(res.data.inWishlist);
         toast.success(
-          res.data.inWishlist
-            ? "Added to wishlist ❤️"
-            : "Removed from wishlist 🤍"
+          res.data.inWishlist ? "Added to wishlist ❤️" : "Removed from wishlist 🤍"
         );
-        if (onToggle) {
-          await onToggle();
-        }
+        if (onToggle) await onToggle();
       } else {
         toast.error("Wishlist update failed");
       }
@@ -103,23 +75,25 @@ useEffect(() => {
   };
 
   return (
-    <div className="w-[220px] sm:w-[230px] lg:w-[240px] bg-white rounded-xl shadow-md hover:shadow-lg transition border p-3 mx-auto cursor-pointer relative">
+    <div
+      className="w-[220px] sm:w-[230px] lg:w-[240px] bg-white rounded-xl shadow-md hover:shadow-lg transition border p-3 mx-auto cursor-pointer relative"
+      onClick={() => router.push(`/book/${onebook._id}`)} // <-- Navigate to book/:id
+    >
       {/* Image */}
       <div className="relative h-40 w-full rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
         {imageSrc ? (
-          <img
-            src={imageSrc}
-            alt={onebook.title}
-            className="w-full h-full object-cover"
-          />
+          <img src={imageSrc} alt={onebook.title} className="w-full h-full object-cover" />
         ) : (
           <p className="text-gray-400 text-sm">No Image</p>
         )}
 
-        {/* Heart */}
+        {/* Heart (prevent click from bubbling to card) */}
         <button
           disabled={loadingWish}
-          onClick={() => toggleWishlist(onebook._id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleWishlist(onebook._id);
+          }}
           className="absolute top-2 right-2 p-1.5 rounded-full bg-white shadow text-sm"
         >
           {wish ? "❤️" : "🤍"}
@@ -131,38 +105,29 @@ useEffect(() => {
         <h3 className="font-semibold text-sm text-gray-800 leading-tight line-clamp-2">
           {onebook.title || "Book Title"}
         </h3>
-        <p className="text-xs text-gray-500 truncate">
-          {onebook.author || "Author"}
-        </p>
+        <p className="text-xs text-gray-500 truncate">{onebook.author || "Author"}</p>
 
         <div className="flex items-center gap-2 mt-1">
-          <span className="bg-green-600 text-white text-xs px-2 py-[2px] rounded">
-            {rating} ⭐
-          </span>
+          <span className="bg-green-600 text-white text-xs px-2 py-[2px] rounded">{rating} ⭐</span>
           <span className="text-xs text-gray-500">({reviews} reviews)</span>
         </div>
 
         <div className="mt-1 flex items-center gap-2">
-          <span className="text-lg font-bold text-gray-900">
-            ₹{onebook.price}
-          </span>
+          <span className="text-lg font-bold text-gray-900">₹{onebook.price}</span>
           <span className="text-sm line-through text-gray-500">₹{mrp}</span>
-          <span className="text-sm text-green-600 font-semibold">
-            {discount}% off
-          </span>
+          <span className="text-sm text-green-600 font-semibold">{discount}% off</span>
         </div>
 
-        <p
-          className={`text-xs mt-1 ${
-            onebook.inStock ? "text-green-600" : "text-red-500"
-          }`}
-        >
+        <p className={`text-xs mt-1 ${onebook.inStock ? "text-green-600" : "text-red-500"}`}>
           {onebook.inStock ? "In Stock" : "Out of Stock"}
         </p>
 
         <button
           disabled={!onebook.inStock}
-          onClick={() => onebook.inStock && addToCart(onebook._id!)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onebook.inStock && addToCart(onebook._id!);
+          }}
           className={`mt-2 w-full py-2 rounded-lg font-semibold text-sm transition ${
             onebook.inStock
               ? "bg-sky-600 text-white hover:bg-sky-700"

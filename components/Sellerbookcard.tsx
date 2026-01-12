@@ -6,7 +6,7 @@ import {
   fetchBooks,
 } from "@/store/slice/bookSlice/bookSlice";
 import { AppDispatch } from "@/store/store";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import AddBookModal from "./Addbookmodal";
 
@@ -30,9 +30,22 @@ const BookCard: React.FC<BookCardProps> = ({ book }) => {
     setEditBook(book);
     setOpenAddModal(true);
   };
-const user=localStorage.getItem("user")
 
-const isUser=user==="user"
+
+
+  const [isUser, setIsUser] = useState(false);
+
+useEffect(() => {
+   const checkAndFetch = async () => {
+      const stored = localStorage.getItem("user");
+      const userRole = stored ? JSON.parse(stored):null
+setIsUser(userRole === "seller");
+
+    }
+
+    checkAndFetch();
+}, []);
+
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border p-4 flex flex-col justify-between">
@@ -69,18 +82,20 @@ const isUser=user==="user"
       </div>
 
       {/* Action Buttons */}
-     <div className="grid gap-2 mt-4">
-          <button
-    disabled={!isUser}
-    className={`py-2 w-full rounded-lg transition ${
-      isUser
-        ? "bg-sky-600 text-white hover:bg-sky-700"
-        : "bg-gray-400 text-white "
-    }`}
-    onClick={() => isUser && handleEditBook(book)}
-  >
-    Edit
-  </button>
+      <div className="grid gap-2 mt-4">
+       <button
+  disabled={!isUser}
+  onClick={() => handleEditBook(book)}
+  className={`py-2 w-full rounded-lg transition 
+    ${
+    isUser
+      ? "bg-sky-600 text-black hover:bg-sky-700"
+      : "bg-gray-400 text-white cursor-not-allowed"
+  }
+  `}
+>
+  Edit
+</button>
         <button
           className="py-2 w-full bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
           onClick={() => handledelete(book._id)}

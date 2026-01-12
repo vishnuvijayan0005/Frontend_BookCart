@@ -11,6 +11,8 @@ import BannerSlider from "./Banner";
 export default function CategoryBrowser() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const booksPerPage = 8; // You can adjust this
 
   const dispatch = useDispatch<AppDispatch>();
   const books = useSelector((state: RootState) => state.books.books);
@@ -28,6 +30,17 @@ export default function CategoryBrowser() {
     activeCategory === "All"
       ? books
       : books?.filter((b) => b.category === activeCategory);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredBooks.length / booksPerPage);
+  const startIndex = (currentPage - 1) * booksPerPage;
+  const currentBooks = filteredBooks.slice(startIndex, startIndex + booksPerPage);
+
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" }); // scroll to top on page change
+  };
 
   return (
     <>
@@ -47,7 +60,10 @@ export default function CategoryBrowser() {
           {categories.map((cat) => (
             <button
               key={cat}
-              onClick={() => setActiveCategory(cat)}
+              onClick={() => {
+                setActiveCategory(cat);
+                setCurrentPage(1); // reset page on category change
+              }}
               className={`px-4 py-2 rounded-full text-sm font-medium transition
                 ${
                   activeCategory === cat
@@ -75,6 +91,7 @@ export default function CategoryBrowser() {
               onClick={() => {
                 setActiveCategory(cat);
                 setSidebarOpen(false);
+                setCurrentPage(1); // reset page on category change
               }}
               className={`flex items-center px-4 py-2 rounded-xl text-sm font-medium transition
                 ${
@@ -103,28 +120,62 @@ export default function CategoryBrowser() {
         <BannerSlider />
 
         {/* ---------- BOOKS GRID ---------- */}
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <h2 className="text-2xl font-bold mb-6 text-gray-900">
+            {activeCategory} Books
+          </h2>
 
-       <div className="max-w-7xl mx-auto px-4 py-6">
-  <h2 className="text-2xl font-bold mb-6 text-gray-900">
-    {activeCategory} Books
-  </h2>
+          {!filteredBooks?.length ? (
+            <p className="text-gray-600">No books found</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {currentBooks.map((bk) => (
+                  <div
+                    key={bk._id!}
+                    className="bg-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-300 min-h-[350px]"
+                  >
+                    <BookCard onebook={bk} />
+                  </div>
+                ))}
+              </div>
 
-  {!filteredBooks?.length ? (
-    <p className="text-gray-600">No books found</p>
-  ) : (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-      {filteredBooks.map((bk) => (
-        <div
-          key={bk._id!}
-          className="bg-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-300 min-h-[350px]" 
-        >
-          <BookCard onebook={bk} />
+              {/* ---------- PAGINATION ---------- */}
+              <div className="flex justify-center mt-8 gap-2 flex-wrap">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 rounded-md bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                >
+                  Prev
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`px-4 py-2 rounded-md transition
+                      ${
+                        currentPage === page
+                          ? "bg-sky-600 text-white"
+                          : "bg-gray-200 hover:bg-gray-300"
+                      }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 rounded-md bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </>
+          )}
         </div>
-      ))}
-    </div>
-  )}
-</div>
-
       </div>
     </>
   );
