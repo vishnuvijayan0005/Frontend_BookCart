@@ -18,12 +18,16 @@ export default function BookCard({ onebook, onToggle }: BookCardProps) {
   // Wishlist state
   const [wish, setWish] = useState(onebook?.inwish || false);
   const [loadingWish, setLoadingWish] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   // Update heart if prop changes (like after parent fetch)
   useEffect(() => {
     setWish(onebook?.inwish);
   }, [onebook?._id, onebook?.inwish]);
-
+useEffect(() => {
+  const role = localStorage.getItem("usertoken");
+  setUserRole(role);
+}, []);
   // Demo rating
   const rating = 4.6;
   const reviews = 320;
@@ -38,22 +42,24 @@ export default function BookCard({ onebook, onToggle }: BookCardProps) {
       ? URL.createObjectURL(onebook.image)
       : "";
 
-  const addToCart = async(id:string) => {
+  const addToCart = async (id: string) => {
     try {
-       if (loadingWish) return;
-    setLoadingWish(true);
+      if(!userRole){
+        return toast.error("please login")
+      }
+      const request = api.post(
+        `/cart/${id}`);
 
-    const token = localStorage.getItem("usertoken");
-    if (!token) {
-      toast.error("Please Log in");
-      setTimeout(() => router.push("/auth/login"), 1000);
-      setLoadingWish(false);
-      return;
-    }
-    const res=await api.post(`/addcart/${id}`)
-  
+      toast.promise(request, {
+        loading: "Adding to cart...",
+        success: (res) => res.data.message || "Added to cart",
+        error: (err) =>
+          err.response?.data?.message || "Product already in cart",
+      });
+
+      await request; // optional if you need to wait
     } catch (error) {
-      
+      console.error(error);
     }
   };
 
@@ -72,7 +78,7 @@ export default function BookCard({ onebook, onToggle }: BookCardProps) {
 
     try {
       const res = await api.post(`/wishbook/${bookId}`);
-      // console.log(res.data);
+    
 
       if (res.data.success) {
         setWish(res.data.inWishlist); // ✅ correct key

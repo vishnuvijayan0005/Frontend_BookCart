@@ -31,8 +31,6 @@ export default function Navbar() {
   const handleLogout = () => {
     window.location.href = "/";
     dispatch(logout());
- 
-    
   };
 
   const handleSearch = () => {
@@ -80,7 +78,7 @@ export default function Navbar() {
                     </button>
                   </div>,
                   {
-                    duration: 2000, 
+                    duration: 2000,
                     position: "top-center",
                   }
                 );
@@ -92,10 +90,30 @@ export default function Navbar() {
           >
             <Heart size={20} /> Wishlist
           </button>
-
-          <button
-            onClick={() => router.push("/cart")}
-            className="relative flex items-center gap-2 text-gray-600 hover:text-sky-600 transition"
+ <button
+            onClick={() => {
+              const token = localStorage.getItem("usertoken");
+              if (!token) {
+                toast.error(
+                  <div>
+                    Please Login{" "}
+                    <button
+                      className="ml-2 underline text-blue-500 hover:text-blue-700"
+                      onClick={() => router.push("/auth/login")}
+                    >
+                      Click here
+                    </button>
+                  </div>,
+                  {
+                    duration: 2000,
+                    position: "top-center",
+                  }
+                );
+              } else {
+                router.push("/cart")
+              }
+            }}
+            className="flex items-center gap-2 text-gray-600 hover:text-sky-600 transition"
           >
             <ShoppingCart size={20} />
             Cart
@@ -103,6 +121,7 @@ export default function Navbar() {
               0
             </span>
           </button>
+         
 
           {/* -------- SEARCH BAR (Desktop) ---------- */}
           <div className="flex items-center gap-2 bg-white border rounded-xl px-3 py-1 shadow-sm">
